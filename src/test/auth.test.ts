@@ -1,7 +1,7 @@
-const request = require("supertest");
-const app = require("../server");
-const mongoose = require("mongoose");
-const Post = require("../models/post_model");
+import request from "supertest";
+import app from "../server"
+import mongoose from "mongoose";
+import Post from "../models/post_model";
 
 const newPostMessage = "this is my test post";
 const newPostSender = "Noa";

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const Post = require("../models/post_model");
+import mongoose from "mongoose";
+import Post from "../models/post_model";
 
 const getAllPosts = async (req, res, next) => {
   try {
@@ -18,19 +18,19 @@ const getAllPosts = async (req, res, next) => {
 
 const getPostById = async (req, res, next) => {
   console.log("getPostById : " + req.params.id);
-  if ((req.params.id == null) | (req.params.id == undefined)) {
+  if ((req.params.id == null) || (req.params.id == undefined)) {
     res.status(400).send({
       status: "fail",
-      message: err.message,
+      message: res.err.message,
     });
   }
   try {
-    posts = await Post.findById(req.params.id);
+    const posts = await Post.findById(req.params.id);
     res.status(200).send(posts);
   } catch (error) {
     res.status(400).send({
       status: "fail",
-      message: err.message,
+      message: res.err.message,
     });
   }
 };
@@ -44,7 +44,7 @@ const addNewPost = async (req, res, next) => {
   });
 
   try {
-    newPost = await post.save();
+    const newPost = await post.save();
     console.log("save post in db");
     res.status(200).send(newPost);
   } catch (err) {
@@ -56,14 +56,14 @@ const addNewPost = async (req, res, next) => {
 const updatePostById = async (req, res, next) => {
   console.log("updatePostById");
   console.log(req.body);
-  if ((req.params.id == null) | (req.params.id == undefined)) {
+  if ((req.params.id == null) || (req.params.id == undefined)) {
     res.status(400).send({
       status: "fail",
-      message: err.message,
+      message: res.err.message,
     });
   }
   try {
-    updatePost = await Post.findOneAndUpdate(req.params.id, req.body);
+    const updatePost = await Post.findOneAndUpdate(req.params.id, req.body);
     console.log("update post in db");
     const newPost = await Post.findById(updatePost._id);
     res.status(200).send(newPost);
@@ -72,4 +72,4 @@ const updatePostById = async (req, res, next) => {
   }
 };
 
-module.exports = { getAllPosts, getPostById, addNewPost, updatePostById };
+export = { getAllPosts, getPostById, addNewPost, updatePostById };
