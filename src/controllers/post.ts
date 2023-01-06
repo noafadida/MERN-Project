@@ -1,75 +1,73 @@
-import mongoose from "mongoose";
 import Post from "../models/post_model";
+import Request from "../common/Request";
+import Response from "../common/Response";
+import Error from "../common/Error";
+// import { Request, Response } from "express";
 
-const getAllPosts = async (req, res, next) => {
-  try {
-    console.log("getAllPosts");
-    let posts = {};
-    if (req.query.sender == null) {
-      posts = await Post.find();
-    } else {
-      posts = await Post.find({ sender: req.query.sender });
-    }
-    res.status(200).send(posts);
-  } catch (err) {
-    res.status(400).send({ error: "fail to get posts from db" });
-  }
-};
-
-const getPostById = async (req, res, next) => {
-  console.log("getPostById : " + req.params.id);
-  if ((req.params.id == null) || (req.params.id == undefined)) {
-    res.status(400).send({
-      status: "fail",
-      message: res.err.message,
-    });
-  }
-  try {
-    const posts = await Post.findById(req.params.id);
-    res.status(200).send(posts);
-  } catch (error) {
-    res.status(400).send({
-      status: "fail",
-      message: res.err.message,
-    });
-  }
-};
-
-const addNewPost = async (req, res, next) => {
-  console.log("addNewPost");
+const addNewPost = async (req) => {
   console.log(req.body);
+  const msg = req.body.message;
+  const senderMsg = req.body.sender;
+  const sender = req.userId;
   const post = new Post({
-    message: req.body.message,
-    sender: req.body.sender,
+    message: msg,
+    sender: senderMsg,
   });
-
   try {
     const newPost = await post.save();
-    console.log("save post in db");
-    res.status(200).send(newPost);
+    return new Response(newPost, sender, null);
   } catch (err) {
-    console.log("fail to save post in db");
-    res.status(400).send({ error: "fail adding new post to db" });
+    return new Response(null, sender, new Error(400, err.message));
   }
 };
 
-const updatePostById = async (req, res, next) => {
-  console.log("updatePostById");
-  console.log(req.body);
-  if ((req.params.id == null) || (req.params.id == undefined)) {
-    res.status(400).send({
-      status: "fail",
-      message: res.err.message,
-    });
-  }
+const getAllPosts = async (req) => {
+  const sender = req.userId;
   try {
-    const updatePost = await Post.findOneAndUpdate(req.params.id, req.body);
-    console.log("update post in db");
-    const newPost = await Post.findById(updatePost._id);
-    res.status(200).send(newPost);
-  } catch (error) {
-    res.status(400).send({ error: "fail update post in db" });
+    const posts = await Post.find();
+    return new Response(posts, sender, null);
+  } catch (err) {
+    return new Response(null, sender, new Error(400, err.message));
   }
 };
 
-export = { getAllPosts, getPostById, addNewPost, updatePostById };
+const getPostById = async (req, id) => {
+  // const id = id;
+  const postId = id;
+  const sender = req.userId;
+  try {
+    const posts = await Post.findById(postId);
+    return new Response(posts, sender, null);
+  } catch (err) {
+    return new Response(null, sender, new Error(400, err.message));
+  }
+};
+
+const getPostBySender = async (req, sender) => {
+  try {
+    const posts = await Post.find({ sender: sender });
+    return new Response(posts, req.userId, null);
+  } catch (err) {
+    return new Response(null, req.userId, new Error(400, err.message));
+  }
+};
+
+const putPostById = async (req, id) => {
+  const postId = id;
+  const updateMsg = req.body.message
+  const sender = req.userId;
+  try {
+    const post = await Post.findByIdAndUpdate(postId, { message: updateMsg }, { new: true });
+    return new Response(post, sender, null);
+  } catch (err) {
+    return new Response(null, sender, new Error(400, err.message));
+  }
+};
+
+export = {
+  getAllPosts,
+  addNewPost,
+  getPostById,
+  getPostBySender,
+  putPostById,
+};
