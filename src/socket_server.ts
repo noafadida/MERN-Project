@@ -3,7 +3,7 @@ import http from "http";
 import jwt from "jsonwebtoken";
 import echoHandler from "./socket/echoHandler";
 import postHandler from "./socket/postHandler";
-import chatHandler from "./socket/chatHandler";
+// import chatHandler from "./socket/chatHandler";
 
 export = (server: http.Server) => {
   const io = new Server(server);
@@ -26,7 +26,7 @@ export = (server: http.Server) => {
     console.log("a user connected " + socket.id);
     echoHandler(io, socket);
     postHandler(io, socket);
-    chatHandler(io, socket);
+    // chatHandler(io, socket);
 
     const userId = socket.data.user;
     await socket.join(userId);

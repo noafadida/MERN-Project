@@ -1,73 +1,94 @@
 import Post from "../models/post_model";
-import Request from "../common/Request";
-import Response from "../common/Response";
-import Error from "../common/Error";
-// import { Request, Response } from "express";
+import { Request, Response } from "express";
 
-const addNewPost = async (req) => {
-  console.log(req.body);
-  const msg = req.body.message;
-  const senderMsg = req.body.sender;
-  const sender = req.userId;
+const getAllPostsEvent = async () => {
+  console.log("");
+  try {
+    const posts = await Post.find();
+    return { status: "OK", data: posts };
+  } catch (err) {
+    return { status: "FAIL", data: "" };
+  }
+};
+
+const getAllPosts = async (req: Request, res: Response) => {
+  try {
+    let posts = {};
+    if (req.query.sender == null) {
+      posts = await Post.find();
+    } else {
+      posts = await Post.find({ sender: req.query.sender });
+    }
+    res.status(200).send(posts);
+  } catch (err) {
+    res.status(400).send({ error: "Failed to get posts from DB" });
+  }
+};
+
+const getPostsById = async (req: Request, res: Response) => {
+  try {
+    const post = await Post.find({ sender: req.params.id });
+    res.status(200).send(post);
+  } catch (err) {
+    res.status(400).send({ error: "Failed to get post from DB" });
+  }
+};
+
+const addNewPost = async (req: Request, res: Response) => {
+  if (!req.body.avatarUrl) {
+    console.log("avatarUrl is required!");
+    return res.status(400).send({ error: "avatarUrl is required!" });
+  }
+  let fixStr = req.body.avatarUrl.toString();
+  let result = fixStr.replace("\\", "/");
   const post = new Post({
-    message: msg,
-    sender: senderMsg,
+    message: req.body.message,
+    sender: req.body.sender,
+    avatarUrl: result,
   });
   try {
     const newPost = await post.save();
-    return new Response(newPost, sender, null);
+    console.log("post saved in DB");
+    res.status(200).send(newPost);
   } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
+    console.log("failed to save post in DB");
+    res.status(400).send({ error: "Failed add post to DB" });
   }
 };
 
-const getAllPosts = async (req) => {
-  const sender = req.userId;
+const updatePost = async (req: Request, res: Response) => {
+  const message = req.body.message;
+  const id = req.body.id;
+
   try {
-    const posts = await Post.find();
-    return new Response(posts, sender, null);
+    const post = await Post.findByIdAndUpdate(id, {
+      $set: {
+        message,
+      },
+    });
+
+    await post.save();
+    res.status(200).send({ msg: "Update succes", status: 200 });
   } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
+    res.status(400).send({ err: err.message });
   }
 };
 
-const getPostById = async (req, id) => {
-  // const id = id;
-  const postId = id;
-  const sender = req.userId;
+const deletePost = async (req: Request, res: Response) => {
+  const id = req.params.id
   try {
-    const posts = await Post.findById(postId);
-    return new Response(posts, sender, null);
+    const P = await Post.findByIdAndDelete({ _id: id });
+    res.status(200).send({ msg: "delete succes", status: 200 });
   } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
-  }
-};
-
-const getPostBySender = async (req, sender) => {
-  try {
-    const posts = await Post.find({ sender: sender });
-    return new Response(posts, req.userId, null);
-  } catch (err) {
-    return new Response(null, req.userId, new Error(400, err.message));
-  }
-};
-
-const putPostById = async (req, id) => {
-  const postId = id;
-  const updateMsg = req.body.message
-  const sender = req.userId;
-  try {
-    const post = await Post.findByIdAndUpdate(postId, { message: updateMsg }, { new: true });
-    return new Response(post, sender, null);
-  } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
+    res.status(400).send({ err: err.message });
   }
 };
 
 export = {
   getAllPosts,
   addNewPost,
-  getPostById,
-  getPostBySender,
-  putPostById,
+  getPostsById,
+  getAllPostsEvent,
+  updatePost,
+  deletePost,
 };

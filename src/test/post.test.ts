@@ -1,130 +1,69 @@
-import request from "supertest";
-import app from "../server";
-import mongoose from "mongoose";
-import Post from "../models/post_model";
-import User from "../models/user_model";
-import Message from "../models/message_model";
-import Conversation from "../models/conversation_model";
+import request from 'supertest'
+import app from '../server'
+import mongoose from 'mongoose'
+import Post from '../models/post_model'
 
-const newPostMessage = "This is the new test post message";
-let newPostSender = "";
-let newPostId = "";
-const newPostMessageUpdated = "This is the updated message";
-
-const userEmail = "user1@gmail.com";
-const userPassword = "12345";
-let accessToken = "";
+const newPostMessage = 'This is the new test post message'
+const newPostSender = '999555'
+const newPostAvatarUrl = 'https://example.com/avatar.png'
 
 beforeAll(async () => {
-  await Post.remove();
-  await User.remove();
-  await Message.remove();
-  await Conversation.remove();
-
-  const res = await request(app).post("/auth/register").send({
-    email: userEmail,
-    password: userPassword,
-  });
-  newPostSender = res.body._id;
-});
-
-async function loginUser() {
-  const response = await request(app).post("/auth/login").send({
-    email: userEmail,
-    password: userPassword,
-  });
-  accessToken = response.body.accessToken;
-}
-
-beforeEach(async () => {
-  await loginUser();
+    await Post.deleteMany({});
 });
 
 afterAll(async () => {
-  await Post.remove();
-  await User.remove();
-  mongoose.connection.close();
+    await Post.deleteMany({});
+    mongoose.connection.close();
 });
 
 describe("Posts Tests", () => {
-  test("add new post", async () => {
-    const response = await request(app)
-      .post("/post")
-      .set("Authorization", "JWT " + accessToken)
-      .send({
-        message: newPostMessage,
-        sender: newPostSender,
-      });
-    expect(response.statusCode).toEqual(200);
-    //   console.log("response body addNewPost")
-    //   console.log(response.body.post)
-    expect(response.body.post.message).toEqual(newPostMessage);
-    expect(response.body.post.sender).toEqual(newPostSender);
-    newPostId = response.body.post._id;
-  });
 
-  test("get all posts", async () => {
-    const response = await request(app)
-      .get("/post")
-      .set("Authorization", "JWT " + accessToken);
-    expect(response.statusCode).toEqual(200);
-    expect(response.body.post[0].message).toEqual(newPostMessage);
-    expect(response.body.post[0].sender).toEqual(newPostSender);
-  });
-
-  test("get post by id", async () => {
-    const response = await request(app)
-      .get("/post/" + newPostId)
-      .set("Authorization", "JWT " + accessToken);
-    expect(response.statusCode).toEqual(200);
-    expect(response.body.post.message).toEqual(newPostMessage);
-    expect(response.body.post._id).toEqual(newPostId);
-  });
-
-  test("get post by wrong id fails", async () => {
-    const response = await request(app)
-      .get("/post/12345")
-      .set("Authorization", "JWT " + accessToken);
-    expect(response.statusCode).toEqual(400);
-  });
-
-  test("get post by sender", async () => {
-    const response = await request(app)
-      .get("/post?sender=" + newPostSender)
-      .set("Authorization", "JWT " + accessToken);
-    expect(response.statusCode).toEqual(200);
-    expect(response.body.post[0].message).toEqual(newPostMessage);
-    expect(response.body.post[0].sender).toEqual(newPostSender);
-  });
-
-    test("update post by valid Id", async () => {
-        let response = await request(app)
-            .put("/post/" + newPostId)
-            .set("Authorization", "JWT " + accessToken)
-            .send({
-                message: newPostMessageUpdated,
-            });
-        console.log(response.body.post)
-        expect(response.statusCode).toEqual(200);
-        expect(response.body.post.message).toEqual(newPostMessageUpdated);
-        expect(response.body.post.sender).toEqual(newPostSender);
-
-        response = await request(app)
-        .get("/post/" + newPostId)
-        .set("Authorization", "JWT " + accessToken);
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.post.message).toEqual(newPostMessageUpdated);
-      expect(response.body.post.sender).toEqual(newPostSender);
-    })
-    
-    test("update post by invalid Id", async () => {
-      const response = await request(app)
-        .put("/post/12345")
-        .set("Authorization", "JWT " + accessToken)
-        .send({
-          message: newPostMessageUpdated,
+    test("Get all posts", async () => {
+        await Post.create({
+            message: "This is a test post message",
+            sender: "sender1",
+            avatarUrl: newPostAvatarUrl
         });
-      expect(response.statusCode).toEqual(400);
-    
+
+        const response = await request(app).get("/post");
+        expect(response.statusCode).toEqual(200);
+        expect(Array.isArray(response.body)).toBe(true);
+        expect(response.body.length).toBeGreaterThan(0);
+        const post = response.body[0];
+        expect(post).toHaveProperty("_id");
+        expect(post).toHaveProperty("message");
+        expect(post).toHaveProperty("sender");
     });
-});
+
+
+    test("Add new post", async () => {
+        const response = await request(app).post("/post").send({
+            message: newPostMessage,
+            sender: newPostSender,
+            avatarUrl: "https://example.com/avatar.png",
+        });
+        expect(response.statusCode).toEqual(200);
+        expect(response.body.message).toEqual(newPostMessage);
+        expect(response.body.sender).toEqual(newPostSender);
+    });
+    test("Get post by id", async () => {
+        const post = await Post.create({
+            message: "This is a test post message",
+            sender: "sender1",
+            avatarUrl: "https://example.com/avatar.png",
+        });
+
+        const response = await request(app).get(`/post/${post._id}`);
+        expect(response.statusCode).toEqual(200);
+        expect(response.body.message).toEqual(post.message);
+        expect(response.body.sender).toEqual(post.sender);
+    });
+    test("Get all posts event", async () => {
+        const response = await request(app).get("/post/events");
+        expect(response.statusCode).toEqual(200);
+        expect(response.body.status).toEqual("OK");
+        expect(Array.isArray(response.body.data)).toBe(true);
+        expect(response.body.data.length).toBeGreaterThan(0);
+    });
+
+})

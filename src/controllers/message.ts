@@ -1,56 +1,43 @@
 import Message from "../models/message_model";
-import Conversation from "../models/conversation_model";
-import Error from "../common/Error";
-import Response from "../common/Response";
+import { Request, Response } from "express";
 import mongoose from "mongoose";
-var id = new mongoose.Types.ObjectId();
+import Conversation from "../models/conversation_model";
+var ObjectId = require("mongodb").ObjectId;
 
-//new message
-const addNewMessage = async (req, conversationId) => {
-  const sender = req.userId;
-  // console.log("add new msg");
-  // console.log(req.body);
-  console.log("conversationId:", conversationId.body.id);
+const addNewMessage = async (req: Request, res: Response) => {
+  const { conversationId, senderId, text } = req.body;
   try {
     const message = await new Message({
-      conversationId: conversationId.body.id,
-      senderId: sender,
-      text: req.body.text,
+      conversationId,
+      senderId,
+      text,
     });
     const savedMessage = await message.save();
     console.log("saved a new message in db");
-    return new Response(savedMessage, sender, null);
+    res.status(200).send(savedMessage);
   } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
+    res.status(400).send({ error: "Failed to get user from DB" });
   }
 };
 
 // get user messages
-const getUserMessages = async (req, user) => {
-  console.log(user);
-  const sender = req.userId;
-  console.log(sender);
+const getConversationrMessages = async (req: Request, res: Response) => {
+  const conversationId = req.params.conversationId;
   try {
     let isExist = await Conversation.findOne({
-      members: [user, sender],
+      _id: JSON.parse(conversationId),
     });
-    if (!isExist) {
-      isExist = await Conversation.findOne({
-        members: [sender, user],
-      });
+    if (isExist) {
+      const messages = await Message.find({ conversationId });
+      res.status(200).send(messages);
     }
-    console.log(isExist);
-    const messages = await Message.find({
-      conversationId: isExist.id,
-    });
-    console.log("conversationId:", isExist.id);
-    return new Response(messages, sender, null);
   } catch (err) {
-    return new Response(null, sender, new Error(400, err.message));
+    console.log(err);
+    res.status(400).send({ error: "Failed to get user  message from DB" });
   }
 };
 
 export = {
   addNewMessage,
-  getUserMessages,
+  getConversationrMessages,
 };

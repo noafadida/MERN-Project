@@ -1,16 +1,18 @@
 import express from "express";
 const app = express();
-import dotenv from "dotenv";
-dotenv.config();
-import mongoose from "mongoose";
 import http from "http";
 const server = http.createServer(app);
-
+import dotenv from "dotenv";
+dotenv.config();
 import bodyParser from "body-parser";
 app.use(bodyParser.urlencoded({ extended: true, limit: "1mb" }));
 app.use(bodyParser.json());
 
-mongoose.connect(process.env.DATABASE_URL); //, { useNewUrlParser: true });
+import cors from "cors";
+app.use(cors())
+
+import mongoose from "mongoose";
+mongoose.connect(process.env.DATABASE_URL); //,{ useNewUrlParser: true})
 const db = mongoose.connection;
 db.on("error", (error) => {
   console.error(error);
@@ -19,19 +21,25 @@ db.once("open", () => {
   console.log("connected to mongo DB");
 });
 
-app.use("/public", express.static("public"));
-
+import indexRouter from "./routes/index_route";
+import userRoute from "./routes/user_route";
 import postRouter from "./routes/post_route";
-app.use("/post", postRouter);
+import authRouther from "./routes/auth_route";
+import fileRouter from "./routes/file_route";
+import chatRouter from "./routes/chat_route";
 
-import authRouth from "./routes/auth_route";
-app.use("/auth", authRouth);
+app.use("/", indexRouter);
+app.use("/user", userRoute);
+app.use("/post", postRouter);
+app.use("/auth", authRouther);
+app.use("/file", fileRouter);
+app.use("/message", chatRouter);
+
+app.use("/public", express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
 // import conversationRouth from "./routes/conversation_route";
 // app.use("/conversation", conversationRouth);
-
-import messageRouth from "./routes/message_route";
-app.use("/message", messageRouth);
 
 import swaggerUI from "swagger-ui-express";
 import swaggerJsDoc from "swagger-jsdoc";

@@ -11,8 +11,12 @@ function sendError(res: Response, error: String) {
 }
 
 const register = async (req: Request, res: Response) => {
+  console.log("SERVER login", req.body);
+
   const email = req.body.email;
   const password = req.body.password;
+  const name = req.body.name;
+  const avatarUrl = req.body.avatarUrl;
 
   if (email == null || password == null) {
     return sendError(res, "please provide valid email and password");
@@ -29,14 +33,15 @@ const register = async (req: Request, res: Response) => {
     const newUser = new User({
       email: email,
       password: encryptedPwd,
+      name,
+      avatarUrl,
     });
     await newUser.save();
     return res.status(200).send({
-      email: email,
-      _id: newUser._id,
+      newUser,
     });
   } catch (err) {
-    return sendError(res, "fail ...");
+    return sendError(res, "failed ...");
   }
 };
 
@@ -51,28 +56,30 @@ async function generateTokens(userId: string) {
     process.env.REFRESH_TOKEN_SECRET
   );
 
-  return { accessToken: accessToken, refreshToken: refreshToken };
+  return { accessToken: accessToken, refreshToken: refreshToken, id: userId };
 }
 
 const login = async (req: Request, res: Response) => {
   const email = req.body.email;
   const password = req.body.password;
-  if (email == null || password == null) {
+  if (!email || !password) {
     return sendError(res, "please provide valid email and password");
   }
 
   try {
     const user = await User.findOne({ email: email });
-    if (user == null) return sendError(res, "incorrect user or password");
+    if (!user) return sendError(res, "incorrect user or password");
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return sendError(res, "incorrect user or password");
 
-    const tokens = await generateTokens(user._id.toString());
+    const tokens = await generateTokens(String(user._id));
 
-    if (user.refresh_tokens == null)
+    if (!user?.refresh_tokens) {
       user.refresh_tokens = [tokens.refreshToken];
-    else user.refresh_tokens.push(tokens.refreshToken);
+    } else {
+      user.refresh_tokens.push(tokens.refreshToken);
+    }
     await user.save();
     return res.status(200).send(tokens);
   } catch (err) {
@@ -108,7 +115,7 @@ const refresh = async (req: Request, res: Response) => {
       return sendError(res, "fail validating token");
     }
 
-    const tokens = await generateTokens(userObj._id.toString());
+    const tokens = await generateTokens(userObj.id);
 
     userObj.refresh_tokens[userObj.refresh_tokens.indexOf(refreshToken)] =
       tokens.refreshToken;
@@ -138,7 +145,6 @@ const logout = async (req: Request, res: Response) => {
       await userObj.save();
       return sendError(res, "fail validating token");
     }
-
     userObj.refresh_tokens.splice(
       userObj.refresh_tokens.indexOf(refreshToken),
       1

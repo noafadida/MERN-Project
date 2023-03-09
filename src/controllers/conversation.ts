@@ -1,35 +1,33 @@
 import Conversation from "../models/conversation_model";
-import Request from "../common/Request";
-import Response from "../common/Response";
-import Error from "../common/Error";
+import { Request, Response } from "express";
 
-const getConversation = async (req) => {
-  console.log("getConversation");
-  // const senderId = req.body.senderId;
-  const receiverId = req.body.receiverId;
-  const senderId = req.userId;
+const getConversation = async (req: Request, res: Response) => {
+  const senderId = req.params.senderId;
+  const receiverId = req.params.receiverId;
   try {
     let isExist = await Conversation.findOne({
       members: [senderId, receiverId],
     });
-    if (!isExist)
+    if (!isExist) {
       isExist = await Conversation.findOne({
         members: [receiverId, senderId],
       });
+    }
     //new conversation
+    
     if (!isExist) {
       const newConversation = await new Conversation({
         members: [senderId, receiverId],
       });
       const savedConversation = await newConversation.save();
-      return new Response(savedConversation, senderId, null);
+      res.status(200).send(savedConversation);
     } else {
       //exist conversation
       console.log("conversation exists in db");
-      return new Response(isExist, senderId, null);
+      res.status(200).send(isExist);
     }
   } catch (err) {
-    return new Response(null, senderId, new Error(400, err.message));
+    res.status(400).send({ error: "Failed " });
   }
 };
 

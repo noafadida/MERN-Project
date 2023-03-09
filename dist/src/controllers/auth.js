@@ -20,6 +20,7 @@ function sendError(res, error) {
     });
 }
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log('SERVER login', req.body);
     const email = req.body.email;
     const password = req.body.password;
     if (email == null || password == null) {
@@ -56,21 +57,25 @@ function generateTokens(userId) {
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const email = req.body.email;
     const password = req.body.password;
-    if (email == null || password == null) {
+    console.log('in auth.ts');
+    if (!email || !password) {
         return sendError(res, "please provide valid email and password");
     }
     try {
         const user = yield user_model_1.default.findOne({ email: email });
-        if (user == null)
+        if (!user)
             return sendError(res, "incorrect user or password");
         const match = yield bcrypt_1.default.compare(password, user.password);
         if (!match)
             return sendError(res, "incorrect user or password");
-        const tokens = yield generateTokens(user._id.toString());
-        if (user.refresh_tokens == null)
+        const tokens = yield generateTokens(String(user._id));
+        console.log(user);
+        if (!(user === null || user === void 0 ? void 0 : user.refresh_tokens)) {
             user.refresh_tokens = [tokens.refreshToken];
-        else
+        }
+        else {
             user.refresh_tokens.push(tokens.refreshToken);
+        }
         yield user.save();
         return res.status(200).send(tokens);
     }
@@ -99,7 +104,7 @@ const refresh = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             yield userObj.save();
             return sendError(res, "fail validating token");
         }
-        const tokens = yield generateTokens(userObj._id.toString());
+        const tokens = yield generateTokens(userObj.id);
         userObj.refresh_tokens[userObj.refresh_tokens.indexOf(refreshToken)] =
             tokens.refreshToken;
         console.log("refresh token: " + refreshToken);

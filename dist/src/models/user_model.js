@@ -8,13 +8,21 @@ const userSchema = new mongoose_1.default.Schema({
         type: String,
         required: true,
     },
+    name: {
+        type: String,
+        required: true,
+    },
     password: {
+        type: String,
+        required: true,
+    },
+    avatarUrl: {
         type: String,
         required: true,
     },
     refresh_tokens: {
         type: [String],
-    }
+    },
 });
 module.exports = mongoose_1.default.model("User", userSchema);
 //# sourceMappingURL=user_model.js.map

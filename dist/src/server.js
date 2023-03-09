@@ -4,15 +4,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 const express_1 = __importDefault(require("express"));
 const app = (0, express_1.default)();
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const mongoose_1 = __importDefault(require("mongoose"));
 const http_1 = __importDefault(require("http"));
 const server = http_1.default.createServer(app);
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const body_parser_1 = __importDefault(require("body-parser"));
 app.use(body_parser_1.default.urlencoded({ extended: true, limit: "1mb" }));
 app.use(body_parser_1.default.json());
-mongoose_1.default.connect(process.env.DATABASE_URL); //, { useNewUrlParser: true });
+const cors_1 = __importDefault(require("cors"));
+app.use((0, cors_1.default)());
+const mongoose_1 = __importDefault(require("mongoose"));
+mongoose_1.default.connect(process.env.DATABASE_URL); //,{ useNewUrlParser: true})
 const db = mongoose_1.default.connection;
 db.on("error", (error) => {
     console.error(error);
@@ -20,15 +22,24 @@ db.on("error", (error) => {
 db.once("open", () => {
     console.log("connected to mongo DB");
 });
-app.use("/public", express_1.default.static("public"));
+const index_route_1 = __importDefault(require("./routes/index_route"));
+const user_route_1 = __importDefault(require("./routes/user_route"));
 const post_route_1 = __importDefault(require("./routes/post_route"));
-app.use("/post", post_route_1.default);
 const auth_route_1 = __importDefault(require("./routes/auth_route"));
+const student_route_1 = __importDefault(require("./routes/student_route"));
+const file_route_1 = __importDefault(require("./routes/file_route"));
+const message_route_1 = __importDefault(require("./routes/message_route"));
+app.use("/", index_route_1.default);
+app.use("/user", user_route_1.default);
+app.use("/post", post_route_1.default);
 app.use("/auth", auth_route_1.default);
+app.use("/student", student_route_1.default);
+app.use("/file", file_route_1.default);
+app.use("/message", message_route_1.default);
+app.use("/public", express_1.default.static("public"));
+app.use("/uploads", express_1.default.static("uploads"));
 // import conversationRouth from "./routes/conversation_route";
 // app.use("/conversation", conversationRouth);
-const message_route_1 = __importDefault(require("./routes/message_route"));
-app.use("/message", message_route_1.default);
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_jsdoc_1 = __importDefault(require("swagger-jsdoc"));
 if (process.env.NODE_ENV == "development") {
